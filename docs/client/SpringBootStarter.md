@@ -45,18 +45,21 @@ spring.ai.typesafe.retry.total-timeout=30s
 
 | Property | Default | Description |
 |---|---|---|
-| `api-key` | — | The API key. **No bean is created when the property is not defined**; a blank value fails startup. |
-| `base-url` | `https://api.typesafe.ai` | The API base URL. |
-| `model` | `jev-latest` | Applied to requests that do not name a model. |
+| `api-key` | — | The TypeSafe API key. **No bean is created when neither this nor `openjev-api-key` is defined**; a blank value fails startup. |
+| `openjev-api-key` | — | OpenJEV API key — a free community gateway to the same Jev model. When set and no TypeSafe key is configured, the client uses OpenJEV automatically. |
+| `provider` | auto | Explicit provider selection: `openjev` or `typesafe`. When unset, TypeSafe wins if its key is set, otherwise OpenJEV. |
+| `base-url` | `https://api.typesafe.ai` | The API base URL. Defaults to `https://api.openjev.sh` when OpenJEV is selected. |
+| `model` | `jev-latest` | Applied to requests that do not name a model. Defaults to `openjev` when OpenJEV is selected. |
 | `timeout` | `10s` | Per-attempt HTTP timeout. |
 | `retry.*` | see [Errors and Retries](ErrorsAndRetries.md) | Retry budget and backoff. |
 
 ## Conditional wiring
 
-The `TypeSafeClient` bean is created **only when the `api-key` property is defined**, so an
-application that does not configure TypeSafe at all still starts. A property that is defined
-but blank, such as `${TYPESAFE_API_KEY:}` with the variable unset, fails startup with a
-message naming the property, and so does an unresolved `${TYPESAFE_API_KEY}` placeholder.
+The `TypeSafeClient` bean is created **only when the `api-key` or `openjev-api-key`
+property is defined**, so an application that does not configure TypeSafe at all still
+starts. A property that is defined but blank, such as `${TYPESAFE_API_KEY:}` with the
+variable unset, fails startup with a message naming the property, and so does an
+unresolved `${TYPESAFE_API_KEY}` placeholder.
 Guard your own beans the same way if they depend on the client:
 
 ```java

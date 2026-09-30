@@ -57,9 +57,10 @@ public record RetryPolicy(int maxRetries, Duration initialBackoff, Duration maxB
 
 	/**
 	 * Status codes explicitly retried on top of every 5xx, which is always retried:
-	 * request timeout and rate limit.
+	 * request timeout, rate limit, and service unavailable (OpenJEV signals overload
+	 * with 503 where TypeSafe uses the non-standard 529).
 	 */
-	public static final Set<Integer> DEFAULT_RETRYABLE_STATUSES = Set.of(408, 429);
+	public static final Set<Integer> DEFAULT_RETRYABLE_STATUSES = Set.of(408, 429, 503);
 
 	public RetryPolicy {
 		Assert.isTrue(maxRetries >= 0, "maxRetries must not be negative");

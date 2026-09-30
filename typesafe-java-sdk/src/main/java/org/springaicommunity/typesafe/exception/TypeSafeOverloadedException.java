@@ -23,15 +23,16 @@ import org.jspecify.annotations.Nullable;
 import org.springframework.http.HttpHeaders;
 
 /**
- * Raised on HTTP 529, the non-standard status the API uses to say it is temporarily
- * overloaded. Retry after a short delay.
+ * Raised on HTTP 529 (TypeSafe's non-standard overload status) or HTTP 503 (OpenJEV's
+ * service-unavailable), to say the API is temporarily overloaded. Retry after a short
+ * delay.
  *
  * <p>
  * This extends {@link TypeSafeInternalServerException} rather than sitting beside it,
- * because 529 is numerically a 5xx and both official SDKs report it as their
+ * because both statuses are numerically 5xx and both official SDKs report 529 as their
  * internal-server error. Catching {@code TypeSafeInternalServerException} therefore still
  * catches an overload, exactly as the documented Python and JavaScript patterns do, while
- * catching this type narrows to the one 5xx that is worth retrying on its own terms.
+ * catching this type narrows to the one status that is worth retrying on its own terms.
  *
  * @author Christian Tzolov
  */

@@ -24,8 +24,8 @@ import org.springaicommunity.typesafe.api.TypeSafeApi;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
@@ -47,7 +47,7 @@ import org.springframework.web.client.RestClient;
  */
 @AutoConfiguration
 @ConditionalOnClass({ TypeSafeClient.class, RestClient.class })
-@ConditionalOnProperty(prefix = TypeSafeProperties.CONFIG_PREFIX, name = "api-key")
+@ConditionalOnExpression("!'${spring.ai.typesafe.api-key:}'.isEmpty() or !'${spring.ai.typesafe.openjev-api-key:}'.isEmpty()")
 @EnableConfigurationProperties(TypeSafeProperties.class)
 public class TypeSafeAutoConfiguration {
 
@@ -55,6 +55,13 @@ public class TypeSafeAutoConfiguration {
 	 * Builds the client. The {@link RestClient.Builder} is taken from the context when one
 	 * is available, so Boot's {@code RestClientCustomizer}s, interceptors and
 	 * observability apply, and the configured timeout is layered on top of it.
+	 *
+	 * <p>Provider selection: an explicit {@code spring.ai.typesafe.provider=openjev} wins;
+	 * otherwise TypeSafe is the default when its key is set; otherwise OpenJEV when only
+	 * {@code openjev-api-key} is set. When OpenJEV is selected, the base URL and model
+	 * default to the OpenJEV endpoint and {@code openjev} model unless explicitly
+	 * overridden.
+	 *
 	 * @param properties the configuration
 	 * @param restClientBuilderProvider the context's builder, if any
 	 * @return the client
@@ -63,12 +70,14 @@ public class TypeSafeAutoConfiguration {
 	@ConditionalOnMissingBean
 	public TypeSafeClient typeSafeClient(TypeSafeProperties properties, ObjectProvider<RestClient.Builder> restClientBuilderProvider) {
 
-		// @ConditionalOnProperty matches a property that merely exists, so the very common
-		// `api-key=${TYPESAFE_API_KEY:}` with the variable unset gets this far with a blank
-		// key. Fail fast, naming the property, rather than build a client that cannot
-		// authenticate.
-		Assert.state(StringUtils.hasText(properties.getApiKey()),
-				() -> "No API key configured. Set " + TypeSafeProperties.CONFIG_PREFIX + ".api-key.");
+		// The conditional expression matches a non-blank api-key or openjev-api-key, but
+		// a placeholder like ${TYPESAFE_API_KEY:} with the variable unset still resolves
+		// to blank. Fail fast, naming the property, rather than build a client that
+		// cannot authenticate.
+		String apiKey = properties.resolveApiKey();
+		Assert.state(StringUtils.hasText(apiKey),
+				() -> "No API key configured. Set " + TypeSafeProperties.CONFIG_PREFIX
+						+ ".api-key or " + TypeSafeProperties.CONFIG_PREFIX + ".openjev-api-key.");
 
 		JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory();
 		requestFactory.setReadTimeout(properties.getTimeout());
@@ -76,20 +85,20 @@ public class TypeSafeAutoConfiguration {
 		// clone(), because the context's builder may be a singleton shared with other
 		// consumers; replacing its request factory in place would change their timeouts too.
 		RestClient.Builder restClientBuilder = restClientBuilderProvider.getIfAvailable(RestClient::builder)
-			.clone()
-			.requestFactory(requestFactory);
+				.clone()
+				.requestFactory(requestFactory);
 
 		return TypeSafeClient.builder()
-			.apiKey(properties.getApiKey())
-			.baseUrl(properties.getBaseUrl())
-			.defaultModel(properties.getModel())
-			// Declared as well as applied to the transport: the client counts it against
-			// RetryPolicy.totalTimeout when deciding whether another attempt fits, so
-			// leaving it at the 10s default lets a call overrun its declared budget.
-			.timeout(properties.getTimeout())
-			.retryPolicy(properties.toRetryPolicy())
-			.restClientBuilder(restClientBuilder)
-			.build();
+				.apiKey(apiKey)
+				.baseUrl(properties.resolveBaseUrl())
+				.defaultModel(properties.resolveModel())
+				// Declared as well as applied to the transport: the client counts it against
+				// RetryPolicy.totalTimeout when deciding whether another attempt fits, so
+				// leaving it at the 10s default lets a call overrun its declared budget.
+				.timeout(properties.getTimeout())
+				.retryPolicy(properties.toRetryPolicy())
+				.restClientBuilder(restClientBuilder)
+				.build();
 	}
 
 	/**

@@ -9,6 +9,8 @@ A Java client for the [TypeSafe AI](https://docs.typesafe.ai/introduction) **Sys
 API (`jev`), built on Spring `RestClient` and Jackson 3, plus Spring AI integrations that
 use it as a Model-as-a-judge, a guardrail, a RAG post-processor and a tool index.
 
+> **OpenJEV support:** Jev is built by [TypeSafe](https://typesafe.ai). This fork keeps TypeSafe as the default and adds optional support for [OpenJEV](https://openjev.sh), a free community gateway to the same Jev model — set `OPENJEV_API_KEY` (or `JEV_PROVIDER=openjev`) to use it. Original project: https://github.com/spring-ai-community/spring-ai-typesafe by @spring-ai-community.
+
 📖 **[Reference documentation](https://spring-ai-community.github.io/spring-ai-typesafe/latest-snapshot/)**
 
 ## Why

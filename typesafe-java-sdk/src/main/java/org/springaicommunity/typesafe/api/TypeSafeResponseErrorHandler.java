@@ -88,7 +88,7 @@ public class TypeSafeResponseErrorHandler implements ResponseErrorHandler {
 	public TypeSafeApiException toException(int status, @Nullable String body, HttpHeaders headers, String endpoint) {
 		String message = buildMessage(status, body, headers, endpoint);
 
-		if (status == TypeSafeOverloadedException.OVERLOADED_STATUS) {
+		if (status == TypeSafeOverloadedException.OVERLOADED_STATUS || status == 503) {
 			return new TypeSafeOverloadedException(message, status, body, headers, endpoint);
 		}
 		return switch (status) {

@@ -583,8 +583,23 @@ public class TypeSafeClient {
 		}
 
 		public TypeSafeClient build() {
-			String model = firstNonBlank(this.defaultModel, System.getenv(TypeSafeConstants.DEFAULT_MODEL_ENV),
-					TypeSafeConstants.DEFAULT_MODEL);
+			// Provider selection: an explicit JEV_PROVIDER=openjev wins; otherwise TypeSafe
+			// is the default when its key is set; otherwise OpenJEV when only
+			// OPENJEV_API_KEY is set. When apiKey(..) is called explicitly the provider
+			// choice still routes the URL and model unless those were set explicitly too.
+			String provider = System.getenv(OpenJEVConstants.PROVIDER_ENV);
+			boolean providerExplicit = StringUtils.hasText(provider);
+			boolean useOpenJEV = OpenJEVConstants.PROVIDER_OPENJEV.equalsIgnoreCase(provider);
+
+			if (!providerExplicit) {
+				String typesafeKey = System.getenv(TypeSafeConstants.API_KEY_ENV);
+				useOpenJEV = !StringUtils.hasText(typesafeKey)
+						&& StringUtils.hasText(System.getenv(OpenJEVConstants.API_KEY_ENV));
+			}
+
+			String modelEnv = useOpenJEV ? OpenJEVConstants.DEFAULT_MODEL_ENV : TypeSafeConstants.DEFAULT_MODEL_ENV;
+			String defaultModelConstant = useOpenJEV ? OpenJEVConstants.DEFAULT_MODEL : TypeSafeConstants.DEFAULT_MODEL;
+			String model = firstNonBlank(this.defaultModel, System.getenv(modelEnv), defaultModelConstant);
 
 			if (this.typeSafeApi != null) {
 				return new TypeSafeClient(this.typeSafeApi, model, this.retryPolicy, this.timeout);
@@ -592,15 +607,17 @@ public class TypeSafeClient {
 
 			Supplier<String> key = this.apiKey;
 			if (key == null) {
-				String fromEnv = System.getenv(TypeSafeConstants.API_KEY_ENV);
+				String keyEnv = useOpenJEV ? OpenJEVConstants.API_KEY_ENV : TypeSafeConstants.API_KEY_ENV;
+				String fromEnv = System.getenv(keyEnv);
 				Assert.hasText(fromEnv,
-						"No API key configured. Call apiKey(..) or set the " + TypeSafeConstants.API_KEY_ENV
+						"No API key configured. Call apiKey(..) or set the " + keyEnv
 								+ " environment variable.");
 				key = () -> fromEnv;
 			}
 
-			String url = firstNonBlank(this.baseUrl, System.getenv(TypeSafeConstants.BASE_URL_ENV),
-					TypeSafeConstants.DEFAULT_BASE_URL);
+			String urlEnv = useOpenJEV ? OpenJEVConstants.BASE_URL_ENV : TypeSafeConstants.BASE_URL_ENV;
+			String defaultUrl = useOpenJEV ? OpenJEVConstants.DEFAULT_BASE_URL : TypeSafeConstants.DEFAULT_BASE_URL;
+			String url = firstNonBlank(this.baseUrl, System.getenv(urlEnv), defaultUrl);
 
 			// Only a transport built here is known to use the default timeout. Assuming it
 			// for a caller's own transport would count ten seconds that may not exist

@@ -6,6 +6,16 @@
       "description": "TypeSafe API key. No Jev client is auto-configured until it is set."
     },
     {
+      "name": "spring.ai.typesafe.openjev-api-key",
+      "type": "java.lang.String",
+      "description": "OpenJEV API key — a free community gateway to the same Jev model. When set and no TypeSafe key is configured, the client uses OpenJEV automatically."
+    },
+    {
+      "name": "spring.ai.typesafe.provider",
+      "type": "java.lang.String",
+      "description": "Explicit provider selection: 'openjev' or 'typesafe'. When unset the provider is auto-detected — TypeSafe wins if its key is set, otherwise OpenJEV."
+    },
+    {
       "name": "spring.ai.typesafe.base-url",
       "type": "java.lang.String",
       "description": "API root of the TypeSafe System One service.",
@@ -20,11 +30,19 @@
   ],
   "hints": [
     {
+      "name": "spring.ai.typesafe.provider",
+      "values": [
+        { "value": "typesafe", "description": "Use the TypeSafe AI API directly (default when its key is set)." },
+        { "value": "openjev", "description": "Use OpenJEV, a free community gateway to the same Jev model." }
+      ]
+    },
+    {
       "name": "spring.ai.typesafe.model",
       "values": [
         { "value": "jev-latest", "description": "Alias tracking the current flagship release." },
         { "value": "jev-preview", "description": "Alias tracking the current preview release." },
-        { "value": "jev-1.13.0", "description": "Pinned flagship version." }
+        { "value": "jev-1.13.0", "description": "Pinned flagship version." },
+        { "value": "openjev", "description": "OpenJEV gateway model id (used automatically when provider is openjev)." }
       ]
     }
   ]

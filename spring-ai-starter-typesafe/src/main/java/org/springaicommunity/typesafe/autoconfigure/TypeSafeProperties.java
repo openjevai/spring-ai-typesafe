@@ -22,10 +22,12 @@ import java.time.Duration;
 import java.util.Set;
 
 import org.jspecify.annotations.Nullable;
+import org.springaicommunity.typesafe.OpenJEVConstants;
 import org.springaicommunity.typesafe.RetryPolicy;
 import org.springaicommunity.typesafe.TypeSafeConstants;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.util.StringUtils;
 
 /**
  * Configuration for the Jev System One client.
@@ -50,6 +52,18 @@ public class TypeSafeProperties {
 	private @Nullable String apiKey;
 
 	/**
+	 * OpenJEV API key — a free community gateway to the same Jev model. When set and
+	 * no TypeSafe key is configured, the client uses OpenJEV automatically.
+	 */
+	private @Nullable String openjevApiKey;
+
+	/**
+	 * Explicit provider selection: {@code openjev} or {@code typesafe}. When unset the
+	 * provider is auto-detected — TypeSafe wins if its key is set, otherwise OpenJEV.
+	 */
+	private @Nullable String provider;
+
+	/**
 	 * API root.
 	 */
 	private String baseUrl = TypeSafeConstants.DEFAULT_BASE_URL;
@@ -72,6 +86,69 @@ public class TypeSafeProperties {
 
 	public void setApiKey(@Nullable String apiKey) {
 		this.apiKey = apiKey;
+	}
+
+	public @Nullable String getOpenjevApiKey() {
+		return this.openjevApiKey;
+	}
+
+	public void setOpenjevApiKey(@Nullable String openjevApiKey) {
+		this.openjevApiKey = openjevApiKey;
+	}
+
+	public @Nullable String getProvider() {
+		return this.provider;
+	}
+
+	public void setProvider(@Nullable String provider) {
+		this.provider = provider;
+	}
+
+	/**
+	 * Resolves the provider selection: an explicit {@code provider} wins; otherwise
+	 * TypeSafe wins if its key is set, otherwise OpenJEV if its key is set.
+	 * @return {@code true} when OpenJEV should be used
+	 */
+	public boolean resolveUseOpenJEV() {
+		if (OpenJEVConstants.PROVIDER_OPENJEV.equalsIgnoreCase(this.provider)) {
+			return true;
+		}
+		if (OpenJEVConstants.PROVIDER_TYPESAFE.equalsIgnoreCase(this.provider)) {
+			return false;
+		}
+		return !StringUtils.hasText(this.apiKey) && StringUtils.hasText(this.openjevApiKey);
+	}
+
+	/**
+	 * Resolves the effective API key based on the provider selection.
+	 * @return the key to use, or {@code null} when none is configured
+	 */
+	public @Nullable String resolveApiKey() {
+		return resolveUseOpenJEV() ? this.openjevApiKey : this.apiKey;
+	}
+
+	/**
+	 * Resolves the effective base URL, overriding the TypeSafe default with the OpenJEV
+	 * default when OpenJEV is selected and the user has not changed it from the default.
+	 * @return the base URL to use
+	 */
+	public String resolveBaseUrl() {
+		if (resolveUseOpenJEV() && TypeSafeConstants.DEFAULT_BASE_URL.equals(this.baseUrl)) {
+			return OpenJEVConstants.DEFAULT_BASE_URL;
+		}
+		return this.baseUrl;
+	}
+
+	/**
+	 * Resolves the effective model, overriding the TypeSafe default with the OpenJEV
+	 * default when OpenJEV is selected and the user has not changed it from the default.
+	 * @return the model to use
+	 */
+	public String resolveModel() {
+		if (resolveUseOpenJEV() && TypeSafeConstants.DEFAULT_MODEL.equals(this.model)) {
+			return OpenJEVConstants.DEFAULT_MODEL;
+		}
+		return this.model;
 	}
 
 	public String getBaseUrl() {
